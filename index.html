@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>แจ้งเคส</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root { --green:#06C755; --text:#222; --muted:#777; --line:#ddd; --err:#d93025; --bg:#f5f6f7; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI","Noto Sans Thai",Tahoma,sans-serif; background:var(--bg); color:var(--text); }
+  header { background:var(--green); color:#fff; padding:14px 16px; font-size:17px; font-weight:600; }
+  form { padding:16px; max-width:520px; margin:0 auto; }
+  .field { margin-bottom:14px; }
+  label { display:block; font-size:14px; margin-bottom:6px; }
+  label .req { color:var(--err); }
+  label .opt { color:var(--muted); font-weight:normal; font-size:12px; }
+  input, textarea { width:100%; font-size:16px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  textarea { min-height:96px; resize:vertical; }
+  input:focus, textarea:focus { outline:none; border-color:var(--green); }
+  .prefix { display:flex; }
+  .prefix span { padding:10px 12px; border:1px solid var(--line); border-right:none; border-radius:8px 0 0 8px; background:#eee; font-size:16px; }
+  .prefix input { border-radius:0 8px 8px 0; }
+  .invalid { border-color:var(--err) !important; }
+  .msg { color:var(--err); font-size:12px; margin-top:4px; display:none; }
+  .invalid ~ .msg, .prefix:has(.invalid) ~ .msg { display:block; }
+  button { width:100%; padding:14px; font-size:16px; font-weight:600; color:#fff; background:var(--green); border:none; border-radius:8px; margin-top:6px; }
+  button:disabled { opacity:.5; }
+  .note { font-size:12px; color:var(--muted); margin-top:10px; text-align:center; }
+  #preview { display:none; white-space:pre-wrap; background:#fff; border:1px dashed var(--line); border-radius:8px; padding:12px; font-size:14px; margin-top:14px; }
+  #status { text-align:center; font-size:14px; margin-top:12px; }
+</style>
+</head>
+<body>
+<header>📋 แจ้งเคส</header>
+
+<form id="caseForm" novalidate>
+  <div class="field">
+    <label for="customerCode">รหัสลูกค้า <span class="req">*</span></label>
+    <input id="customerCode" inputmode="numeric" pattern="\d{4,}" required placeholder="เช่น 100234">
+    <div class="msg">ตัวเลขอย่างน้อย 4 หลัก</div>
+  </div>
+
+  <div class="field">
+    <label for="customerName">ชื่อลูกค้า <span class="req">*</span></label>
+    <input id="customerName" required placeholder="เช่น เจบีเอฟ จำกัด">
+    <div class="msg">กรุณากรอกชื่อลูกค้า</div>
+  </div>
+
+  <div class="field">
+    <label for="so">เลขที่ SO <span class="req">*</span></label>
+    <input id="so" pattern="[A-Za-z]?\d+" required placeholder="เช่น S1234567" autocapitalize="characters">
+    <div class="msg">รูปแบบ เช่น S1234567</div>
+  </div>
+
+  <div class="field">
+    <label for="doNo">เลขที่ DO <span class="opt">(ถ้ามี)</span></label>
+    <div class="prefix"><span>DO</span><input id="doNo" inputmode="numeric" pattern="\d{4,}" placeholder="023567"></div>
+    <div class="msg">ตัวเลขอย่างน้อย 4 หลัก</div>
+  </div>
+
+  <div class="field">
+    <label for="issue">รายละเอียดปัญหา <span class="req">*</span></label>
+    <textarea id="issue" required placeholder="เช่น เอกสาร DO ไม่ชัด"></textarea>
+    <div class="msg">กรุณากรอกรายละเอียดปัญหา</div>
+  </div>
+
+  <button id="submitBtn" type="submit" disabled>กำลังโหลด…</button>
+  <div id="status"></div>
+  <div id="preview"></div>
+  <div class="note">ผู้แจ้งจะถูกบันทึกจากชื่อ LINE โดยอัตโนมัติ</div>
+</form>
+
+<script>
+  const LIFF_ID = 'YOUR_LIFF_ID';   // ← replace with the LIFF ID from LINE Developers
+
+  const $ = id => document.getElementById(id);
+  const btn = $('submitBtn');
+  let canSend = false;
+
+  // Upper-case SO; strip a typed "DO" prefix
+  $('so').addEventListener('input', e => e.target.value = e.target.value.toUpperCase().trim());
+  $('doNo').addEventListener('input', e => e.target.value = e.target.value.replace(/^\s*DO\s*/i, '').trim());
+
+  liff.init({ liffId: LIFF_ID }).then(() => {
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const ctx = liff.getContext() || {};
+    canSend = liff.isInClient() && ['group', 'room', 'utou'].includes(ctx.type);
+    btn.disabled = false;
+    btn.textContent = canSend ? 'ส่งเคส' : 'สร้างข้อความ';
+    if (!canSend) $('status').textContent = 'เปิดฟอร์มจากในกลุ่ม LINE เพื่อส่งเคสอัตโนมัติ';
+  }).catch(err => {
+    btn.disabled = false;
+    btn.textContent = 'สร้างข้อความ';
+    $('status').textContent = 'โหลด LINE ไม่สำเร็จ: ' + err.message;
+  });
+
+  function validate() {
+    let ok = true;
+    ['customerCode', 'customerName', 'so', 'doNo', 'issue'].forEach(id => {
+      const el = $(id);
+      el.value = el.value.trim();
+      const bad = !el.checkValidity();
+      el.classList.toggle('invalid', bad);
+      if (bad) ok = false;
+    });
+    return ok;
+  }
+
+  // Builds the exact #case text the bot's parser expects
+  function buildMessage() {
+    const issue = $('issue').value.replace(/\s*\n\s*/g, ' ');
+    const doNo = $('doNo').value;
+    return '#case\n' +
+      $('customerCode').value + ' ' + $('customerName').value + '\n' +
+      'SO ' + $('so').value + '\n' +
+      issue + (doNo ? ' เลขที่ DO' + doNo : '');
+  }
+
+  $('caseForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!validate()) return;
+    const text = buildMessage();
+
+    if (!canSend) {
+      $('preview').style.display = 'block';
+      $('preview').textContent = text;
+      try { await navigator.clipboard.writeText(text); $('status').textContent = 'คัดลอกข้อความแล้ว นำไปวางในกลุ่ม LINE'; } catch (_) {}
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'กำลังส่ง…';
+    try {
+      await liff.sendMessages([{ type: 'text', text }]);
+      liff.closeWindow();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'ส่งเคส';
+      $('status').textContent = 'ส่งไม่สำเร็จ: ' + err.message;
+    }
+  });
+</script>
+</body>
+</html>
