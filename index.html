@@ -10,22 +10,23 @@
   * { box-sizing:border-box; }
   body { margin:0; font-family:-apple-system,"Segoe UI","Noto Sans Thai",Tahoma,sans-serif; background:var(--bg); color:var(--text); }
   header { background:var(--green); color:#fff; padding:14px 16px; font-size:17px; font-weight:600; }
-  form { padding:16px; max-width:520px; margin:0 auto; }
+  form, #done { padding:16px; max-width:520px; margin:0 auto; }
   .field { margin-bottom:14px; }
   label { display:block; font-size:14px; margin-bottom:6px; }
   label .req { color:var(--err); }
   label .opt { color:var(--muted); font-weight:normal; font-size:12px; }
-  input, textarea, select { width:100%; font-size:16px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--text); }
+  input, textarea, select { width:100%; font-size:16px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--text); font-family:inherit; }
   input[readonly] { background:#eee; color:#555; }
   textarea { min-height:96px; resize:vertical; }
-  input:focus, textarea:focus { outline:none; border-color:var(--green); }
+  input:focus, textarea:focus, select:focus { outline:none; border-color:var(--green); }
   .prefix { display:flex; }
   .prefix span { padding:10px 12px; border:1px solid var(--line); border-right:none; border-radius:8px 0 0 8px; background:#eee; font-size:16px; }
   .prefix input { border-radius:0 8px 8px 0; }
-  .msg { color:var(--err); font-size:12px; margin-top:4px; display:none; }
   select { -webkit-appearance:none; appearance:none; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 12px center; padding-right:34px; }
+  .msg { color:var(--err); font-size:12px; margin-top:4px; display:none; }
   .has-error input, .has-error textarea, .has-error select { border-color:var(--err); }
   .has-error .msg { display:block; }
+  .hint { font-size:12px; color:var(--muted); margin-top:4px; }
 
   /* customer search */
   .combo { position:relative; }
@@ -43,26 +44,45 @@
   .row2 { display:flex; gap:8px; }
   .row2 .code { flex:0 0 38%; }
   .row2 .name { flex:1; }
-  .hint { font-size:12px; color:var(--muted); margin-top:4px; }
 
-  button { width:100%; padding:14px; font-size:16px; font-weight:600; color:#fff; background:var(--green); border:none; border-radius:8px; margin-top:6px; }
+  /* photos */
+  .photo-btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:12px;
+               border:1px dashed #b9c4be; border-radius:8px; background:#fff; color:#333; font-size:15px; cursor:pointer; }
+  .photo-btn input { display:none; }
+  .thumbs { display:grid; grid-template-columns:repeat(auto-fill, minmax(88px, 1fr)); gap:8px; margin-top:8px; }
+  .thumb { position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; background:#ddd; }
+  .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb button { position:absolute; top:4px; right:4px; width:26px; height:26px; padding:0; margin:0; border-radius:50%;
+                  background:rgba(0,0,0,.6); color:#fff; font-size:16px; line-height:26px; font-weight:400; }
+
+  button.primary { width:100%; padding:14px; font-size:16px; font-weight:600; color:#fff; background:var(--green); border:none; border-radius:8px; margin-top:6px; }
   button:disabled { opacity:.5; }
   .note { font-size:12px; color:var(--muted); margin-top:10px; text-align:center; }
-  #preview { display:none; white-space:pre-wrap; background:#fff; border:1px dashed var(--line); border-radius:8px; padding:12px; font-size:14px; margin-top:14px; }
-  #status { text-align:center; font-size:14px; margin-top:12px; }
+  #status { text-align:center; font-size:14px; margin-top:12px; white-space:pre-wrap; }
+  #status.err { color:var(--err); }
+  #done { display:none; text-align:center; }
+  #done .big { font-size:22px; font-weight:700; color:#0a7a35; margin:24px 0 8px; }
+  #done p { font-size:15px; line-height:1.6; }
 </style>
 </head>
 <body>
 <header>📋 แจ้งเคส</header>
 
 <form id="caseForm" novalidate>
+  <div class="field" id="f-email">
+    <label for="email">E-mail <span class="opt">(สำหรับรับผลการแก้ไข)</span></label>
+    <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="name@company.com">
+    <div class="hint">ระบบจะจำอีเมลไว้ให้ครั้งถัดไป ใส่หลายอีเมลได้ คั่นด้วย ,</div>
+    <div class="msg">รูปแบบอีเมลไม่ถูกต้อง</div>
+  </div>
+
   <div class="field" id="f-customer">
     <label for="custSearch">ค้นหาลูกค้า <span class="req">*</span></label>
     <div class="combo">
       <input id="custSearch" autocomplete="off" placeholder="กำลังโหลดรายชื่อลูกค้า…" disabled>
       <div id="custList" class="list"></div>
     </div>
-    <div class="hint" id="custHint">พิมพ์รหัสหรือชื่อลูกค้า แล้วเลือกจากรายการ</div>
+    <div class="hint" id="custHint">พิมพ์รหัส ชื่อ หรือสาขา แล้วเลือกจากรายการ</div>
     <div class="row2" style="margin-top:8px">
       <input class="code" id="customerCode" readonly placeholder="รหัสลูกค้า" inputmode="numeric">
       <input class="name" id="customerName" readonly placeholder="ชื่อลูกค้า">
@@ -71,16 +91,16 @@
     <div class="msg">กรุณาเลือกลูกค้า</div>
   </div>
 
-  <div class="field" id="f-so">
-    <label for="so">เลขที่ SO <span class="req">*</span></label>
-    <input id="so" placeholder="เช่น S1234567" autocapitalize="characters">
-    <div class="msg">รูปแบบ เช่น S1234567</div>
+  <div class="field" id="f-do">
+    <label for="doNo">เลขที่ DO <span class="req">*</span></label>
+    <input id="doNo" autocapitalize="characters" autocomplete="off" maxlength="12" placeholder="เช่น A26000156">
+    <div class="hint">ขึ้นต้นด้วย A, W หรือ D ตามด้วยปี 2 หลัก และเลขที่ 6 หลัก</div>
+    <div class="msg">รูปแบบไม่ถูกต้อง เช่น A26000156, W26000933, D26029869</div>
   </div>
 
-  <div class="field" id="f-do">
-    <label for="doNo">เลขที่ DO <span class="opt">(ถ้ามี)</span></label>
-    <div class="prefix"><span>DO</span><input id="doNo" inputmode="numeric" placeholder="023567"></div>
-    <div class="msg">ตัวเลขอย่างน้อย 4 หลัก</div>
+  <div class="field" id="f-plate">
+    <label for="plate">ทะเบียนรถ <span class="opt">(ถ้ามี)</span></label>
+    <input id="plate" placeholder="เช่น 70-1234 ชลบุรี" maxlength="40">
   </div>
 
   <div class="field" id="f-group">
@@ -91,27 +111,49 @@
 
   <div class="field" id="f-issue">
     <label for="issue">รายละเอียดปัญหา <span class="req">*</span></label>
-    <textarea id="issue" placeholder="เช่น เอกสาร DO ไม่ชัด"></textarea>
+    <textarea id="issue" placeholder="อธิบายปัญหาให้ชัดเจน"></textarea>
     <div class="msg">กรุณากรอกรายละเอียดปัญหา</div>
   </div>
 
-  <button id="submitBtn" type="submit" disabled>กำลังโหลด…</button>
+  <div class="field" id="f-photos">
+    <label>แนบรูป <span class="opt">(ถ้ามี สูงสุด 5 รูป)</span></label>
+    <label class="photo-btn" for="photoInput">📷 ถ่ายรูป / เลือกรูป
+      <input id="photoInput" type="file" accept="image/*" multiple>
+    </label>
+    <div class="thumbs" id="thumbs"></div>
+    <div class="msg" id="photoMsg">แนบรูปได้สูงสุด 5 รูป</div>
+  </div>
+
+  <button class="primary" id="submitBtn" type="submit" disabled>กำลังโหลด…</button>
   <div id="status"></div>
-  <div id="preview"></div>
   <div class="note">ผู้แจ้งจะถูกบันทึกจากชื่อ LINE โดยอัตโนมัติ</div>
 </form>
+
+<div id="done">
+  <div class="big">✅ บันทึกเคสเรียบร้อย</div>
+  <p id="doneText"></p>
+</div>
 
 <script>
   const LIFF_ID = '2012030767-ChOyxLD0';   // ← LIFF ID from LINE Developers
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwP5WdunK3TGVhbkiIvsIEXf88r7Tnopy2RtbIafCeMgNJq2hZC7vYti1m9uuVcthJ9/exec';   // ← Apps Script web app URL ending in /exec
+
+  const MAX_PHOTOS = 5;
+  const MAX_SIDE = 1600;            // photos are resized before upload
+  const JPEG_QUALITY = 0.8;
+  const EMAIL_KEY = 'caseFormEmail';
 
   const $ = id => document.getElementById(id);
   const btn = $('submitBtn');
   const search = $('custSearch');
   const list = $('custList');
   let canSend = false;
-  let customers = [];        // [[code, name], ...]
-  let manualCustomer = false; // true if the list couldn't load
+  let customers = [];          // [[code, name, site], ...]
+  let photos = [];             // [{name, type, data(base64), url(preview)}]
+  let submitId = '';
+
+  // Remember the e-mail on this phone
+  try { $('email').value = localStorage.getItem(EMAIL_KEY) || ''; } catch (_) {}
 
   // ---------- LIFF ----------
   liff.init({ liffId: LIFF_ID }).then(() => {
@@ -119,15 +161,11 @@
     const ctx = liff.getContext() || {};
     canSend = liff.isInClient() && ['group', 'room', 'utou'].includes(ctx.type);
     btn.disabled = false;
-    btn.textContent = canSend ? 'ส่งเคส' : 'สร้างข้อความ';
-    if (!canSend) $('status').textContent = 'เปิดฟอร์มจากในกลุ่ม LINE เพื่อส่งเคสอัตโนมัติ';
+    btn.textContent = 'ส่งเคส';
+    if (!canSend) setStatus('เปิดจากนอกกลุ่ม LINE: เคสจะถูกบันทึกและส่งอีเมล แต่จะไม่แจ้งในกลุ่ม');
     loadData();
   }).catch(err => {
-    btn.disabled = false;
-    btn.textContent = 'สร้างข้อความ';
-    $('status').textContent = 'โหลด LINE ไม่สำเร็จ: ' + err.message;
-    enableManualCustomer('โหลดรายชื่อลูกค้าไม่ได้ กรุณากรอกรหัสและชื่อเอง');
-    enableManualGroup();
+    setStatus('โหลด LINE ไม่สำเร็จ: ' + err.message, true);
   });
 
   // ---------- Customer list + case groups ----------
@@ -141,7 +179,7 @@
       customers = data.customers || [];
       if (customers.length) {
         search.disabled = false;
-        search.placeholder = 'พิมพ์รหัสหรือชื่อลูกค้า';
+        search.placeholder = 'พิมพ์รหัส ชื่อ หรือสาขาลูกค้า';
       } else {
         enableManualCustomer('ยังไม่มีรายชื่อลูกค้าในระบบ กรุณากรอกรหัสและชื่อเอง');
       }
@@ -161,7 +199,6 @@
     }
   }
 
-  // Fallback: swap the dropdown for a text box
   function enableManualGroup() {
     const sel = $('caseGroup');
     if (sel.tagName !== 'SELECT') return;
@@ -172,7 +209,6 @@
   }
 
   function enableManualCustomer(msg) {
-    manualCustomer = true;
     search.style.display = 'none';
     $('custHint').textContent = msg;
     $('customerCode').readOnly = false;
@@ -222,7 +258,6 @@
     items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
     items[activeIdx].scrollIntoView({ block: 'nearest' });
   });
-  // mousedown fires before blur, so the tap registers
   list.addEventListener('mousedown', e => {
     const item = e.target.closest('.item');
     if (item) { e.preventDefault(); selectCustomer(Number(item.dataset.i)); }
@@ -232,17 +267,59 @@
     return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   }
 
+  // ---------- Photos ----------
+  $('photoInput').addEventListener('change', async e => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    const room = MAX_PHOTOS - photos.length;
+    $('f-photos').classList.toggle('has-error', files.length > room);
+    for (const file of files.slice(0, Math.max(room, 0))) {
+      try { photos.push(await resizePhoto(file)); } catch (err) { setStatus('อ่านรูปไม่สำเร็จ: ' + file.name, true); }
+    }
+    renderThumbs();
+  });
+
+  function renderThumbs() {
+    $('thumbs').innerHTML = photos.map((p, i) =>
+      `<div class="thumb"><img src="${p.url}" alt="รูปที่ ${i + 1}"><button type="button" data-i="${i}" aria-label="ลบรูป">×</button></div>`).join('');
+  }
+  $('thumbs').addEventListener('click', e => {
+    const b = e.target.closest('button[data-i]');
+    if (!b) return;
+    photos.splice(Number(b.dataset.i), 1);
+    $('f-photos').classList.remove('has-error');
+    renderThumbs();
+  });
+
+  // Shrink to MAX_SIDE px JPEG so uploads stay small on mobile data
+  function resizePhoto(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const src = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(src);
+        const url = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+        resolve({ name: file.name.replace(/\.[^.]+$/, '') + '.jpg', type: 'image/jpeg', data: url.split(',')[1], url });
+      };
+      img.onerror = () => { URL.revokeObjectURL(src); reject(new Error('bad image')); };
+      img.src = src;
+    });
+  }
+
   // ---------- Inputs ----------
-  $('so').addEventListener('input', e => e.target.value = e.target.value.toUpperCase().trim());
-  $('doNo').addEventListener('input', e => e.target.value = e.target.value.replace(/^\s*DO\s*/i, '').trim());
+  $('doNo').addEventListener('input', e => e.target.value = e.target.value.replace(/^\s*DO\s*[:#.\-]?\s*/i, '').replace(/\s+/g, '').toUpperCase());
 
   function validate() {
-    const code = $('customerCode').value.trim();
-    const name = $('customerName').value.trim();
+    const email = $('email').value.trim();
     const checks = {
-      'f-customer': /^\d{4,}$/.test(code) && !!name,
-      'f-so': /^[A-Z]?\d+$/.test($('so').value.trim()),
-      'f-do': !$('doNo').value.trim() || /^\d{4,}$/.test($('doNo').value.trim()),
+      'f-email': !email || email.split(/[,;\s]+/).filter(Boolean).every(x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x)),
+      'f-customer': /^\d{4,}$/.test($('customerCode').value.trim()) && !!$('customerName').value.trim(),
+      'f-do': /^[AWD]\d{8}$/.test($('doNo').value.trim()),
       'f-group': !!$('caseGroup').value.trim(),
       'f-issue': !!$('issue').value.trim()
     };
@@ -251,43 +328,84 @@
       $(id).classList.toggle('has-error', !pass);
       if (!pass) ok = false;
     });
+    if (!ok) document.querySelector('.has-error').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return ok;
   }
 
-  // Builds the exact #case text the bot's parser expects
-  function buildMessage() {
-    const issue = $('issue').value.trim().replace(/\s*\n\s*/g, ' ');
-    const doNo = $('doNo').value.trim();
-    return '#case\n' +
-      $('customerCode').value.trim() + ' ' + $('customerName').value.trim() + '\n' +
-      'SO ' + $('so').value.trim() + '\n' +
-      'กลุ่มปัญหา: ' + $('caseGroup').value.trim() + '\n' +
-      issue + (doNo ? ' เลขที่ DO' + doNo : '');
+  function setStatus(text, isErr) {
+    $('status').textContent = text;
+    $('status').className = isErr ? 'err' : '';
+  }
+
+  // Short message posted into the group; the bot links the case to the group from it
+  function groupMessage(caseNo, d) {
+    return 'แจ้งเคส ' + caseNo + '\n' +
+      'ลูกค้า: ' + d.customerCode + ' ' + d.customerName + '\n' +
+      'DO: ' + d.doNo + (d.plate ? ' | ทะเบียนรถ: ' + d.plate : '') + '\n' +
+      'กลุ่มปัญหา: ' + d.group + '\n' +
+      'ปัญหา: ' + d.issue +
+      (d.photos.length ? '\nแนบรูป: ' + d.photos.length + ' รูป' : '');
   }
 
   $('caseForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!validate()) return;
-    const text = buildMessage();
 
-    if (!canSend) {
-      $('preview').style.display = 'block';
-      $('preview').textContent = text;
-      try { await navigator.clipboard.writeText(text); $('status').textContent = 'คัดลอกข้อความแล้ว นำไปวางในกลุ่ม LINE'; } catch (_) {}
-      return;
-    }
+    const d = {
+      email: $('email').value.trim(),
+      customerCode: $('customerCode').value.trim(),
+      customerName: $('customerName').value.trim(),
+      doNo: $('doNo').value.trim(),
+      plate: $('plate').value.trim(),
+      group: $('caseGroup').value.trim(),
+      issue: $('issue').value.trim().replace(/\s*\n\s*/g, ' '),
+      photos: photos.map(p => ({ name: p.name, type: p.type, data: p.data }))
+    };
+    try { localStorage.setItem(EMAIL_KEY, d.email); } catch (_) {}
+    if (!submitId) submitId = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 
     btn.disabled = true;
-    btn.textContent = 'กำลังส่ง…';
+    btn.textContent = d.photos.length ? 'กำลังอัปโหลดรูปและบันทึก…' : 'กำลังบันทึก…';
+    setStatus('');
+
+    let res;
     try {
-      await liff.sendMessages([{ type: 'text', text }]);
-      liff.closeWindow();
+      // text/plain body = no CORS preflight, which Apps Script can't answer
+      const r = await fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify(Object.assign({ action: 'submit', token: liff.getAccessToken(), submitId }, d))
+      });
+      res = await r.json();
+      if (!res.ok) throw new Error(res.error || 'error');
     } catch (err) {
       btn.disabled = false;
       btn.textContent = 'ส่งเคส';
-      $('status').textContent = 'ส่งไม่สำเร็จ: ' + err.message;
+      setStatus('บันทึกไม่สำเร็จ: ' + err.message + '\nกรุณาลองใหม่', true);
+      return;
     }
+
+    if (canSend) {
+      try {
+        await liff.sendMessages([{ type: 'text', text: groupMessage(res.caseNo, d) }]);
+        liff.closeWindow();
+        return;
+      } catch (err) {
+        showDone(res, 'บันทึกเคสแล้ว แต่ส่งข้อความเข้ากลุ่มไม่สำเร็จ (' + err.message + ')');
+        return;
+      }
+    }
+    showDone(res, '');
   });
+
+  function showDone(res, warn) {
+    $('caseForm').style.display = 'none';
+    $('done').style.display = 'block';
+    $('doneText').innerHTML =
+      'เลขที่เคส <b>' + esc(res.caseNo) + '</b><br>' +
+      (res.mailOk ? 'ส่งอีเมลถึงผู้รับผิดชอบแล้ว' : 'ส่งอีเมลถึงผู้รับผิดชอบไม่สำเร็จ กรุณาแจ้งผู้ดูแลระบบ') +
+      (res.photos ? '<br>แนบรูป ' + res.photos + ' รูป' : '') +
+      (warn ? '<br><br><span style="color:#d93025">' + esc(warn) + '</span>' : '');
+  }
 </script>
 </body>
 </html>
