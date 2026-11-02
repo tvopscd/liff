@@ -69,10 +69,15 @@
 <header>📋 แจ้งเคส</header>
 
 <form id="caseForm" novalidate>
+  <div class="field" id="f-name">
+    <label for="reporterName">ชื่อผู้แจ้งเคส <span class="opt">(ถ้ามี)</span></label>
+    <input id="reporterName" autocomplete="name" maxlength="100" placeholder="เช่น สมชาย ก.">
+  </div>
+
   <div class="field" id="f-email">
     <label for="email">E-mail <span class="opt">(สำหรับรับผลการแก้ไข)</span></label>
     <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="name@company.com">
-    <div class="hint">ระบบจะจำอีเมลไว้ให้ครั้งถัดไป ใส่หลายอีเมลได้ คั่นด้วย ,</div>
+    <div class="hint">ระบบจะจำชื่อและอีเมลไว้ให้ครั้งถัดไป ใส่หลายอีเมลได้ คั่นด้วย ,</div>
     <div class="msg">รูปแบบอีเมลไม่ถูกต้อง</div>
   </div>
 
@@ -135,13 +140,14 @@
 </div>
 
 <script>
-  const LIFF_ID = '2012030767-ChOyxLD0';   // ← LIFF ID from LINE Developers
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwP5WdunK3TGVhbkiIvsIEXf88r7Tnopy2RtbIafCeMgNJq2hZC7vYti1m9uuVcthJ9/exec';   // ← Apps Script web app URL ending in /exec
+  const LIFF_ID = 'YOUR_LIFF_ID';   // ← LIFF ID from LINE Developers
+  const GAS_URL = 'YOUR_GAS_URL';   // ← Apps Script web app URL ending in /exec
 
   const MAX_PHOTOS = 5;
   const MAX_SIDE = 1600;            // photos are resized before upload
   const JPEG_QUALITY = 0.8;
   const EMAIL_KEY = 'caseFormEmail';
+  const NAME_KEY = 'caseFormName';
 
   const $ = id => document.getElementById(id);
   const btn = $('submitBtn');
@@ -153,7 +159,10 @@
   let submitId = '';
 
   // Remember the e-mail on this phone
-  try { $('email').value = localStorage.getItem(EMAIL_KEY) || ''; } catch (_) {}
+  try {
+    $('email').value = localStorage.getItem(EMAIL_KEY) || '';
+    $('reporterName').value = localStorage.getItem(NAME_KEY) || '';
+  } catch (_) {}
 
   // ---------- LIFF ----------
   liff.init({ liffId: LIFF_ID }).then(() => {
@@ -343,6 +352,7 @@
       'ลูกค้า: ' + d.customerCode + ' ' + d.customerName + '\n' +
       'DO: ' + d.doNo + (d.plate ? ' | ทะเบียนรถ: ' + d.plate : '') + '\n' +
       'กลุ่มปัญหา: ' + d.group + '\n' +
+      (d.reporterName ? 'ผู้แจ้ง: ' + d.reporterName + '\n' : '') +
       'ปัญหา: ' + d.issue +
       (d.photos.length ? '\nแนบรูป: ' + d.photos.length + ' รูป' : '');
   }
@@ -352,6 +362,7 @@
     if (!validate()) return;
 
     const d = {
+      reporterName: $('reporterName').value.trim(),
       email: $('email').value.trim(),
       customerCode: $('customerCode').value.trim(),
       customerName: $('customerName').value.trim(),
@@ -361,7 +372,7 @@
       issue: $('issue').value.trim().replace(/\s*\n\s*/g, ' '),
       photos: photos.map(p => ({ name: p.name, type: p.type, data: p.data }))
     };
-    try { localStorage.setItem(EMAIL_KEY, d.email); } catch (_) {}
+    try { localStorage.setItem(EMAIL_KEY, d.email); localStorage.setItem(NAME_KEY, d.reporterName); } catch (_) {}
     if (!submitId) submitId = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 
     btn.disabled = true;
