@@ -439,7 +439,7 @@
       'เลขที่เคส <b>' + esc(res.caseNo) + '</b><br>' +
       (res.mailOk ? 'ส่งอีเมลถึงผู้รับผิดชอบแล้ว' : 'ส่งอีเมลถึงผู้รับผิดชอบไม่สำเร็จ กรุณาแจ้งผู้ดูแลระบบ') +
       (res.photos ? '<br>แนบรูป ' + res.photos + ' รูป' : '') +
-      (res.linked ? '<br>เคสนี้แสดงในกลุ่ม LINE เมื่อพิมพ์ #status แล้ว' : '') +
+      (res.linked ? '<br>การแจ้งทาง PC จะไม่ได้รับการตอบกลับจาก Bot ในกลุ่ม เคสจะแสดงในกลุ่ม LINE เมื่อพิมพ์ #status' : '') +
       (warn ? '<br><br><span style="color:#d93025">' + esc(warn) + '</span>' : '');
     if (pasteText) {
       $('linkBox').style.display = 'block';
