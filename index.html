@@ -63,6 +63,11 @@
   #done { display:none; text-align:center; }
   #done .big { font-size:22px; font-weight:700; color:#0a7a35; margin:24px 0 8px; }
   #done p { font-size:15px; line-height:1.6; }
+  #linkBox { display:none; text-align:left; background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px; margin-top:16px; }
+  #linkBox .t { font-size:14px; font-weight:600; margin-bottom:6px; }
+  #linkBox .s { font-size:12.5px; color:var(--muted); margin-bottom:10px; line-height:1.5; }
+  #linkMsg { white-space:pre-wrap; background:#f5f6f7; border-radius:8px; padding:10px; font-size:13px; line-height:1.5; }
+  #copyBtn { width:100%; margin-top:10px; padding:12px; font-size:15px; font-weight:600; border:none; border-radius:8px; background:var(--green); color:#fff; }
 </style>
 </head>
 <body>
@@ -137,11 +142,17 @@
 <div id="done">
   <div class="big">✅ บันทึกเคสเรียบร้อย</div>
   <p id="doneText"></p>
+  <div id="linkBox">
+    <div class="t">📋 ขั้นตอนสุดท้าย: วางข้อความนี้ในกลุ่ม LINE</div>
+    <div class="s">เพื่อให้บอทยืนยันในกลุ่ม และเคสแสดงเมื่อพิมพ์ #status (จำเป็นเมื่อส่งจาก LINE PC หรือเว็บ)</div>
+    <div id="linkMsg"></div>
+    <button type="button" id="copyBtn">คัดลอกข้อความ</button>
+  </div>
 </div>
 
 <script>
-  const LIFF_ID = '2012030767-ChOyxLD0';   // ← LIFF ID from LINE Developers
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwP5WdunK3TGVhbkiIvsIEXf88r7Tnopy2RtbIafCeMgNJq2hZC7vYti1m9uuVcthJ9/exec';   // ← Apps Script web app URL ending in /exec
+  const LIFF_ID = '2012030767-ChOyxLD0';   // 
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwP5WdunK3TGVhbkiIvsIEXf88r7Tnopy2RtbIafCeMgNJq2hZC7vYti1m9uuVcthJ9/exec';   // 
 
   const MAX_PHOTOS = 5;
   const MAX_SIDE = 1600;            // photos are resized before upload
@@ -157,6 +168,17 @@
   let customers = [];          // [[code, name, site], ...]
   let photos = [];             // [{name, type, data(base64), url(preview)}]
   let submitId = '';
+  let groupId = '';            // LINE group the form was opened from (added to the link by the bot)
+
+  // ?g=… arrives directly, or inside liff.state before LIFF has finished redirecting
+  function readGroupParam() {
+    const q = new URLSearchParams(location.search);
+    if (q.get('g')) return q.get('g');
+    const st = q.get('liff.state');
+    if (st) { const i = st.indexOf('?'); if (i >= 0) return new URLSearchParams(st.slice(i + 1)).get('g') || ''; }
+    return '';
+  }
+  groupId = readGroupParam();
 
   // Remember the e-mail on this phone
   try {
@@ -167,11 +189,12 @@
   // ---------- LIFF ----------
   liff.init({ liffId: LIFF_ID }).then(() => {
     if (!liff.isLoggedIn()) { liff.login(); return; }
+    groupId = readGroupParam() || groupId;
     const ctx = liff.getContext() || {};
     canSend = liff.isInClient() && ['group', 'room', 'utou'].includes(ctx.type);
     btn.disabled = false;
     btn.textContent = 'ส่งเคส';
-    if (!canSend) setStatus('เปิดจากนอกกลุ่ม LINE: เคสจะถูกบันทึกและส่งอีเมล แต่จะไม่แจ้งในกลุ่ม');
+    if (!canSend && !groupId) setStatus('เปิดจาก LINE PC หรือเว็บ: หลังส่งเคส ระบบจะให้คัดลอกข้อความไปวางในกลุ่ม LINE');
     loadData();
   }).catch(err => {
     setStatus('โหลด LINE ไม่สำเร็จ: ' + err.message, true);
@@ -384,7 +407,7 @@
       // text/plain body = no CORS preflight, which Apps Script can't answer
       const r = await fetch(GAS_URL, {
         method: 'POST',
-        body: JSON.stringify(Object.assign({ action: 'submit', token: liff.getAccessToken(), submitId }, d))
+        body: JSON.stringify(Object.assign({ action: 'submit', token: liff.getAccessToken(), submitId, groupId }, d))
       });
       res = await r.json();
       if (!res.ok) throw new Error(res.error || 'error');
@@ -401,22 +424,41 @@
         liff.closeWindow();
         return;
       } catch (err) {
-        showDone(res, 'บันทึกเคสแล้ว แต่ส่งข้อความเข้ากลุ่มไม่สำเร็จ (' + err.message + ')');
+        showDone(res, 'ส่งข้อความเข้ากลุ่มอัตโนมัติไม่สำเร็จ (' + err.message + ')', groupMessage(res.caseNo, d));
         return;
       }
     }
-    showDone(res, '');
+    // LINE PC / web: already linked via the #case button → done; otherwise offer the paste step
+    showDone(res, '', res.linked ? '' : groupMessage(res.caseNo, d));
   });
 
-  function showDone(res, warn) {
+  function showDone(res, warn, pasteText) {
     $('caseForm').style.display = 'none';
     $('done').style.display = 'block';
     $('doneText').innerHTML =
       'เลขที่เคส <b>' + esc(res.caseNo) + '</b><br>' +
       (res.mailOk ? 'ส่งอีเมลถึงผู้รับผิดชอบแล้ว' : 'ส่งอีเมลถึงผู้รับผิดชอบไม่สำเร็จ กรุณาแจ้งผู้ดูแลระบบ') +
       (res.photos ? '<br>แนบรูป ' + res.photos + ' รูป' : '') +
+      (res.linked ? '<br>เคสนี้แสดงในกลุ่ม LINE เมื่อพิมพ์ #status แล้ว' : '') +
       (warn ? '<br><br><span style="color:#d93025">' + esc(warn) + '</span>' : '');
+    if (pasteText) {
+      $('linkBox').style.display = 'block';
+      $('linkMsg').textContent = pasteText;
+    }
   }
+
+  $('copyBtn').addEventListener('click', async () => {
+    const text = $('linkMsg').textContent;
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (_) {
+      // fallback for browsers that block the clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand('copy'); } catch (__) {}
+      ta.remove();
+    }
+    $('copyBtn').textContent = ok ? '✅ คัดลอกแล้ว — ไปวางในกลุ่ม LINE' : 'คัดลอกไม่ได้ กรุณาเลือกข้อความแล้วคัดลอกเอง';
+  });
 </script>
 </body>
 </html>
