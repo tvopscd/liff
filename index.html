@@ -200,6 +200,14 @@
     setStatus('โหลด LINE ไม่สำเร็จ: ' + err.message, true);
   });
 
+  // Where the form is being used — recorded with the case for analysis
+  function deviceLabel() {
+    try {
+      if (liff.isInClient()) return ['ios', 'android'].includes(liff.getOS()) ? 'LINE Mobile' : 'LINE PC';
+    } catch (_) {}
+    return 'Web browser';
+  }
+
   // ---------- Customer list + case groups ----------
   async function loadData() {
     try {
@@ -407,7 +415,7 @@
       // text/plain body = no CORS preflight, which Apps Script can't answer
       const r = await fetch(GAS_URL, {
         method: 'POST',
-        body: JSON.stringify(Object.assign({ action: 'submit', token: liff.getAccessToken(), submitId, groupId }, d))
+        body: JSON.stringify(Object.assign({ action: 'submit', token: liff.getAccessToken(), submitId, groupId, via: deviceLabel() }, d))
       });
       res = await r.json();
       if (!res.ok) throw new Error(res.error || 'error');
